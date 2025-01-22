@@ -3,10 +3,6 @@
 import { useState } from 'react';
 import Image from 'next/image';
 
-type ErrorWithMessage = {
-  message: string;
-};
-
 export default function Home() {
   const [prompt, setPrompt] = useState('');
   const [image, setImage] = useState<string | null>(null);
@@ -14,7 +10,7 @@ export default function Home() {
   const [error, setError] = useState<string | null>(null);
 
   const generateImage = async () => {
-    if (!prompt) {
+    if (!prompt.trim()) {
       setError('Please enter a prompt');
       return;
     }
@@ -22,40 +18,30 @@ export default function Home() {
     try {
       setLoading(true);
       setError(null);
-      setImage(null); // Clear previous image
-      
-      console.log('Sending request with prompt:', prompt);
+      setImage(null);
+
       const response = await fetch('/api/generate', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ prompt }),
+        body: JSON.stringify({ prompt: prompt.trim() }),
       });
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to generate image');
-      }
-
       const data = await response.json();
-      console.log('Received response:', data);
 
-      if (data.error) {
-        setError(data.error);
-        return;
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to generate image');
       }
 
       if (!data.result) {
-        setError('No image URL received from the API');
-        return;
+        throw new Error('No image was generated');
       }
 
       setImage(data.result);
-    } catch (error: unknown) {
+    } catch (error) {
       console.error('Error:', error);
-      const err = error as ErrorWithMessage;
-      setError(err.message || 'Failed to generate image');
+      setError(error instanceof Error ? error.message : 'Failed to generate image');
     } finally {
       setLoading(false);
     }

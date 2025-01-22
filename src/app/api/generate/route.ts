@@ -1,43 +1,33 @@
 import { NextResponse } from 'next/server';
 import Replicate from 'replicate';
 
-type ErrorWithMessage = {
-  message?: string;
-};
-
 export async function POST(req: Request) {
-  try {
-    // Check if API token exists
-    if (!process.env.REPLICATE_API_TOKEN) {
-      console.error('REPLICATE_API_TOKEN is not set');
-      return NextResponse.json(
-        { error: "API token not configured" },
-        { status: 401 }
-      );
-    }
+  if (!process.env.REPLICATE_API_TOKEN) {
+    return NextResponse.json(
+      { error: "API token not configured" },
+      { status: 401 }
+    );
+  }
 
-    let reqBody;
-    try {
-      reqBody = await req.json();
-    } catch (e) {
+  try {
+    const { prompt } = await req.json();
+    
+    if (!prompt) {
       return NextResponse.json(
-        { error: "Invalid request body" },
+        { error: "Prompt is required" },
         { status: 400 }
       );
     }
-
-    const { prompt = "A cute dog named Djeny" } = reqBody;
-    console.log('Generating image for prompt:', prompt);
 
     const replicate = new Replicate({
       auth: process.env.REPLICATE_API_TOKEN,
     });
 
-    try {
-      const prediction = await replicate.predictions.create({
-        version: "4ad44069012e217c2507981a15d71e9a16a67e256bb2dd37cb5b8d91cb790dc9",
+    const output = await replicate.run(
+      "sundai-club/falcon:4ad44069012e217c2507981a15d71e9a16a67e256bb2dd37cb5b8d91cb790dc9",
+      {
         input: {
-          prompt: prompt,
+          prompt,
           model: "dev",
           go_fast: false,
           lora_scale: 1,
@@ -51,48 +41,23 @@ export async function POST(req: Request) {
           extra_lora_scale: 1,
           num_inference_steps: 28
         }
-      });
-
-      console.log('Created prediction:', prediction);
-      
-      const result = await replicate.wait(prediction);
-      console.log('Prediction result:', result);
-
-      if (result.error) {
-        return NextResponse.json(
-          { error: result.error },
-          { status: 500 }
-        );
       }
+    );
 
-      if (!result.output || !Array.isArray(result.output) || result.output.length === 0) {
-        return NextResponse.json(
-          { error: "No image was generated" },
-          { status: 500 }
-        );
-      }
-
-      return NextResponse.json({ result: result.output[0] });
-      
-    } catch (replicateError: unknown) {
-      console.error('Replicate API error:', replicateError);
-      const err = replicateError as ErrorWithMessage;
+    if (!output || (Array.isArray(output) && output.length === 0)) {
       return NextResponse.json(
-        { error: err.message || "Failed to generate image with Replicate" },
+        { error: "Failed to generate image" },
         { status: 500 }
       );
     }
-  } catch (error: unknown) {
-    console.error('Error generating image:', error);
-    const err = error as ErrorWithMessage;
-    if (err.message?.includes('401')) {
-      return NextResponse.json(
-        { error: "Invalid API token. Please check your configuration." },
-        { status: 401 }
-      );
-    }
+
+    const imageUrl = Array.isArray(output) ? output[0] : output;
+    return NextResponse.json({ result: imageUrl });
+
+  } catch (error) {
+    console.error('Error:', error);
     return NextResponse.json(
-      { error: err.message || "Failed to process request" },
+      { error: "Failed to generate image" },
       { status: 500 }
     );
   }
