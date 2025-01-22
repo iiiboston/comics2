@@ -1,6 +1,11 @@
 'use client';
 
 import { useState } from 'react';
+import Image from 'next/image';
+
+type ErrorWithMessage = {
+  message: string;
+};
 
 export default function Home() {
   const [prompt, setPrompt] = useState('');
@@ -47,9 +52,10 @@ export default function Home() {
       }
 
       setImage(data.result);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error:', error);
-      setError(error.message || 'Failed to generate image');
+      const err = error as ErrorWithMessage;
+      setError(err.message || 'Failed to generate image');
     } finally {
       setLoading(false);
     }
@@ -103,12 +109,15 @@ export default function Home() {
 
           {image && (
             <div className="mt-8">
-              <img 
-                src={image} 
-                alt="Generated image" 
-                className="w-full rounded-lg shadow-lg"
-                onError={() => setError('Failed to load the generated image. Please try again.')}
-              />
+              <div className="relative w-full aspect-square">
+                <Image 
+                  src={image} 
+                  alt="Generated image"
+                  fill
+                  className="rounded-lg shadow-lg object-contain"
+                  unoptimized
+                />
+              </div>
               <p className="mt-2 text-sm text-gray-500 text-center">
                 Generated from prompt: "{prompt}"
               </p>

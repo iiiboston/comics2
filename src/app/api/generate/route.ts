@@ -1,6 +1,10 @@
 import { NextResponse } from 'next/server';
 import Replicate from 'replicate';
 
+type ErrorWithMessage = {
+  message?: string;
+};
+
 export async function POST(req: Request) {
   try {
     // Check if API token exists
@@ -59,17 +63,18 @@ export async function POST(req: Request) {
     }
 
     return NextResponse.json({ result: imageUrl });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error generating image:', error);
+    const err = error as ErrorWithMessage;
     // Check if it's an authentication error
-    if (error.message?.includes('401')) {
+    if (err.message?.includes('401')) {
       return NextResponse.json(
         { error: "Invalid API token. Please check your configuration." },
         { status: 401 }
       );
     }
     return NextResponse.json(
-      { error: "Failed to generate image: " + error.message },
+      { error: "Failed to generate image: " + err.message },
       { status: 500 }
     );
   }
