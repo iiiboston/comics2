@@ -70,7 +70,7 @@ export default function Home() {
           <textarea
             value={prompt}
             onChange={(e) => setPrompt(e.target.value)}
-            placeholder="Enter your prompt here... (e.g., 'A beautiful sunset over mountains')"
+            placeholder="Enter your prompt here... (e.g., &apos;A beautiful sunset over mountains&apos;)"
             className="w-full p-3 border rounded-lg h-32 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
           />
           
@@ -119,7 +119,7 @@ export default function Home() {
                 />
               </div>
               <p className="mt-2 text-sm text-gray-500 text-center">
-                Generated from prompt: "{prompt}"
+                Generated from prompt: &ldquo;{prompt}&rdquo;
               </p>
             </div>
           )}
